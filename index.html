@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container" id="registration-form">
+        <h2>Student Registration</h2>
+        <div id="recaptcha-container"></div>
+        <form id="registrationForm">
+            <label for="first-name">First Name:</label>
+            <input type="text" id="first-name" name="first-name" placeholder="Enter your first name" required>
+            <label for="last-name">Last Name:</label>
+            <input type="text" id="last-name" name="last-name" placeholder="Enter your last name" required>
+            <label for="college-name">College Name:</label>
+            <input type="text" id="college-name" name="college-name" placeholder="Enter your college name" required>
+            <label for="mobile">Mobile Number:</label>
+            <input type="text" id="mobile" name="mobile" placeholder="Enter your 10-digit mobile number" required>
+            <button type="button" onclick="sendOTP()">Send Verification Code</button>
+        </form>
+    </div>
+    <div class="container" id="otp-form" style="display:none;">
+        <h2>Enter Verification Code</h2>
+        <form id="otpForm">
+            <label for="otp">Verification Code:</label>
+            <input type="text" id="otp" name="otp" placeholder="Enter verification code" required>
+            <button type="button" onclick="verifyOTP()">Submit</button>
+        </form>
+    </div>
+    <div class="container" id="success-message" style="display:none;">
+        <h2>Success</h2>
+        <p>OTP verified successfully!</p>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDxPgiyaHOpKiso2RMH2BDSBvzWS2G_od4",
+  authDomain: "otp-project-fc89c.firebaseapp.com",
+  projectId: "otp-project-fc89c",
+  storageBucket: "otp-project-fc89c.appspot.com",
+  messagingSenderId: "345867841452",
+  appId: "1:345867841452:web:b44d7a77377c5a26345409",
+  measurementId: "G-QT1ZZ8Y7KG"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        // Render invisible reCAPTCHA
+        function render() {
+            window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+                'size': 'invisible',
+                'callback': function(response) {
+                    // reCAPTCHA solved, allow sendOTP function to proceed
+                }
+            });
+            recaptchaVerifier.render();
+        }
+        render();
+
+        // Function to send OTP
+        function sendOTP() {
+            const phoneNumber = document.getElementById('mobile').value;
+            
+            // Validate Indian phone number format
+            const phoneRegex = /^[6789]\d{9}$/; // Regex for Indian 10-digit mobile number format
+            if (!phoneRegex.test(phoneNumber)) {
+                alert('Please enter a valid 10-digit Indian mobile number.');
+                return;
+            }
+
+            const fullPhoneNumber = `+91${phoneNumber}`; // Adding country code for India
+            const maskedNumber = phoneNumber.slice(0, 2) + '******' + phoneNumber.slice(-2); // Masking the number
+
+            const appVerifier = window.recaptchaVerifier;
+
+            firebase.auth().signInWithPhoneNumber(fullPhoneNumber, appVerifier)
+                .then(function(confirmationResult) {
+                    window.confirmationResult = confirmationResult;
+                    alert(`Verification code sent to ${maskedNumber}`);
+                    document.getElementById('registration-form').style.display = 'none';
+                    document.getElementById('otp-form').style.display = 'block';
+                }).catch(function(error) {
+                    console.error('Error sending OTP:', error);
+                    alert('Error sending OTP: ' + error.message);
+                });
+        }
+
+        // Function to verify OTP
+        function verifyOTP() {
+            const enteredOTP = document.getElementById('otp').value;
+
+            if (enteredOTP) {
+                window.confirmationResult.confirm(enteredOTP)
+                    .then(function(result) {
+                        // User signed in successfully.
+                        document.getElementById('otp-form').style.display = 'none';
+                        document.getElementById('success-message').style.display = 'block';
+                    }).catch(function(error) {
+                        console.error('Error verifying OTP:', error);
+                        alert('Incorrect OTP. Please try again.');
+                    });
+            } else {
+                alert('Please enter the OTP.');
+            }
+        }
+    </script>
+</body>
+</html>
